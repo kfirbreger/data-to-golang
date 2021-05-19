@@ -5,6 +5,7 @@ It make several assumtions which can be configured via env, see bellow
 """
 import argparse
 import json
+import re
 
 def get_config_from_args():
     """
@@ -32,6 +33,38 @@ def get_config_from_args():
 
     return config
 
+def parse_primitive(element, go_name, config):
+    """
+    Parse a primitive, creating an entry in the code
+    """
+    go_type = ''
+    # Everyhting is set to public so capitalized properties names
+    property_name_parts = re.split('_|-|.', go_name)
+    property_name = ""
+    for part in property_name_parts:
+        property_name += part.capitalize()
+    
+    if type(strucutre) == str:
+        go_type += f'{property_name} string'
+    elif element in ['true', 'True', 'false', 'False']:
+        go_type += f'{property_name} bool'
+    else:
+        # Numerical value. Checking for int or float
+        try:
+            n = int(element)
+            go_type += f'{property_name} int{config.bits}'
+        except ValueError
+            try:
+                n = float(element)
+                go_type += f'{property_name} float{config.bits}'
+            except ValueError:
+                pass
+    # Adding marshaling notation
+    formats = []
+    for frmt in config.formats:
+        formats.append(f'{frmt}:"{go_name}"')
+    go_type += '`' + ' '.join(formats) + '`\n'
+    return go_type
 
 def create_type(element, config, go_name):
     go_type = ""
@@ -43,21 +76,9 @@ def create_type(element, config, go_name):
         for key, value in element.items():
             go_type += create_type(value, config, key)
         go_type += '}'
-    elif type(strucutre) == str:
-        go_type += f'{go_name} string\n'
-    elif element in ['true', 'True', 'false', 'False']:
-        go_type += f'{go_name} bool\n'
     else:
-        # Numerical value. Checking for int or float
-        try:
-            n = int(element)
-            go_type += f'{go_name} int{config.bits}\n'
-        except ValueError
-            try:
-                n = float(element)
-                go_type += f'{go_name} float{config.bits}\n'
-            except ValueError:
-                pass
+        # It is a primitive
+        go_type += parse_primitive(element, go_name, config)
     return go_type
 
 
